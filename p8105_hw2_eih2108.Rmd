@@ -1,0 +1,7 @@
+---
+title: "Homework 2"
+author: "Ekaterina Hofrenning"
+date: '2023-09-27'
+output: github_document
+---
+

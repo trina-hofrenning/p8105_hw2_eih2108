@@ -8,6 +8,7 @@ output: github_document
 ```{r}
 library(tidyverse)
 library(lubridate)
+library(readxl)
 ```
 
 # Problem 1
@@ -57,7 +58,37 @@ merge2 <- left_join(merge1, unemployment, by = c("year", "month"))
 
 Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
 
-  
+```{r}
+dim(merge2)
+names(merge2)
+min(merge2$year)
+max(merge2$year)
+```
 
-Note: we could have used a date variable as a key instead of creating year and month keys; doing so would help with some kinds of plotting, and be a more accurate representation of the data. Date formats are tricky, though. For more information check out the lubridate package in the tidyverse.
+The resulting dataset contains 11 columns and 822 observations, containing data from 1947 to 2015. Some key varibles include: part of current president, number of GOP senators, number of Democratic senators, among others.
+
+# Problem 2
+
+Read and clean the Mr. Trash Wheel sheet:
+
+- specify the sheet in the Excel file and to omit non-data entries (rows with notes / figures; columns containing notes) using arguments in read_excel
+- use reasonable variable names
+- omit rows that do not include dumpster-specific data
+
+The data include a column for the (approximate) number of homes powered. This calculation is described in the Homes powered note, but not applied to every row in the dataset. Update the data to include a new homes_powered variable based on this calculation.
+
+```{r}
+mrtrash <- read_excel("./data/202207 Trash Wheel Collection Data.xlsx", sheet = 1) %>%
+  filter(!is.na(Dumpster)) %>%
+  mutate(Date = as.Date(Date))
+```
+
+Use a similar process to import, clean, and organize the data for Professor Trash Wheel and Gwynnda, and combine these with the Mr. Trash Wheel dataset to produce a single tidy dataset. To keep track of which Trash Wheel is which, you may need to add an additional variable to all datasets before combining.
+
+Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in July of 2021?
+
+
+
+
+
 

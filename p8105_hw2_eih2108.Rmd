@@ -5,7 +5,7 @@ date: '2023-09-27'
 output: github_document
 ---
 
-```{r}
+```{r, message = FALSE}
 library(tidyverse)
 library(lubridate)
 library(readxl)
@@ -69,7 +69,7 @@ merge2 <- left_join(merge1, unemployment, by = c("year", "month"))
 Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
 ```
 
-```{r, echo=FALSE}
+```{r, include=FALSE, echo=FALSE}
 dim(merge2)
 names(merge2)
 min(merge2$year)
@@ -93,7 +93,7 @@ The data include a column for the (approximate) number of homes powered. This ca
 * Homes Powered - Each ton of trash equates to on average 500 kilowatts of electricity.  An average household will use 30 kilowatts per day.
 ```
 
-```{r}
+```{r, message = FALSE, error=FALSE}
 # Mr. Trash
 mr_trash <- read_excel("./data/202309 Trash Wheel Collection Data.xlsx", sheet = 1) %>%
   filter(!is.na(Dumpster)) %>% # remove observations with no identifiers
@@ -107,7 +107,7 @@ mr_trash <- read_excel("./data/202309 Trash Wheel Collection Data.xlsx", sheet =
 Use a similar process to import, clean, and organize the data for Professor Trash Wheel and Gwynnda, and combine these with the Mr. Trash Wheel dataset to produce a single tidy dataset. To keep track of which Trash Wheel is which, you may need to add an additional variable to all datasets before combining.
 ```
 
-```{r}
+```{r, message = FALSE, error=FALSE}
 # Professor Trash
 prof_trash <- read_excel("./data/202309 Trash Wheel Collection Data.xlsx", sheet = 2) %>%
   filter(!is.na(Dumpster)) %>%
@@ -133,7 +133,6 @@ gwynda_trash <- read_excel("./data/202309 Trash Wheel Collection Data.xlsx", she
 # Bind Rows Together
 trash_all <- rbind(mr_trash, prof_trash, gwynda_trash) %>% 
     arrange(Dumpster, Date)
-dim(trash_all)
 ```
 
 ```
@@ -142,7 +141,7 @@ Write a paragraph about these data; you are encouraged to use inline R. Be sure 
 
 My final dataset contains `r nrow(trash_all)` observations. There are multiple records per Dumpster, collected on different days by Mr. Trash, Prof. Trash, or Gwynda Trash. There is information about the volume of trash collected, weight of trash collected, type of trash collected, and more. The total weight of trash collected by Professor Trash Wheel is 216.26 tons. The total number of cigarette butts collected by Gwynda in July of 2021 is 16300.
 
-```{r}
+```{r, include=FALSE, echo=FALSE}
 # total weight of trash collected by Prof trash wheel
 trash_all %>%
   filter(trash_type == "Prof Trash") %>%
@@ -187,7 +186,7 @@ mci_bl <- read_csv("./data/data_mci/mci_baseline.csv",
   filter(is.na(age_mci_onset) | age_bl < age_mci_onset) # inclusion criteria (no MCI at baseline)
 ```
 
-```{r, echo = F, warning=F}
+```{r, include = F}
 mci_bl %>% filter(!is.na(age_mci_onset))
 mci_bl %>% summarise(mean = mean(age_bl))
 mci_bl %>% filter(Sex == 0) # 210
@@ -199,7 +198,7 @@ mci_bl %>% filter(Sex == 0, apoe4 == 0) # 147
 In order to clean the baseline data, I first read in the baseline dataset and specified some important column types as integers and doubles. I then made the first row into the column names. Next, I renamed some columns and specified column types for important variables (such as making APOE E4 and Sex into factor variables). After removing individuals that did not meet the inclusion critera, there were 479 participants in the study. Of these, 93 participants develop a MCI diagnosis. The average age at baseline is approximately 65 `r mean(mci_bl$age_bl)`. The proportion of women in the study who are APOE4 carriers is 0.3. 
 
 Amyloid data (longitudinal):
-```{r}
+```{r, warning = FALSE, error= FALSE}
 mci_amy <- read_csv("./data/data_mci/mci_amyloid.csv", 
                     col_types = cols(
                       `Study ID` = col_integer(),

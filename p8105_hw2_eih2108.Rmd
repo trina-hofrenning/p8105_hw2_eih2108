@@ -78,6 +78,7 @@ max(merge2$year)
 
 The resulting dataset contains 11 columns and 822 observations, containing data from 1947 to 2015. Some key varibles include: part of current president, number of GOP senators, number of Democratic senators, among others.
 
+
 # Problem 2
 
 ```
@@ -95,7 +96,7 @@ The data include a column for the (approximate) number of homes powered. This ca
 ```{r}
 # Mr. Trash
 mr_trash <- read_excel("./data/202309 Trash Wheel Collection Data.xlsx", sheet = 1) %>%
-  filter(!is.na(Dumpster)) %>%
+  filter(!is.na(Dumpster)) %>% # remove observations with no identifiers
   mutate(Date = as.Date(Date),
          homes_powered = `Weight (tons)`*(500/30),
          trash_type = "Mr Trash") %>%
@@ -113,7 +114,7 @@ prof_trash <- read_excel("./data/202309 Trash Wheel Collection Data.xlsx", sheet
   mutate(Date = as.Date(Date),
          homes_powered = `Weight (tons)`*(500/30),
          trash_type = "Prof Trash",
-         `Sports Balls` = NA) %>%
+         `Sports Balls` = NA) %>% # add missing column
   relocate(`Sports Balls`, .before = "homes_powered") %>%
   select(-`Homes Powered*`)
 
@@ -123,15 +124,16 @@ gwynda_trash <- read_excel("./data/202309 Trash Wheel Collection Data.xlsx", she
   mutate(Date = as.Date(Date),
          homes_powered = `Weight (tons)`*(500/30),
          trash_type = "Gwynda Trash",
-         `Sports Balls` = NA,
-         `Glass Bottles` = NA) %>%
-  relocate(`Glass Bottles`, .after = `Cigarette Butts`) %>%
+         `Sports Balls` = NA, # add missing column
+         `Glass Bottles` = NA) %>% # add missing column
+  relocate(`Glass Bottles`, .after = `Cigarette Butts`) %>% 
   relocate(`Sports Balls`, .after = `Wrappers`) %>%
   select(-`Homes Powered*`)
 
 # Bind Rows Together
 trash_all <- rbind(mr_trash, prof_trash, gwynda_trash) %>% 
     arrange(Dumpster, Date)
+dim(trash_all)
 ```
 
 ```
@@ -155,5 +157,80 @@ trash_all %>%
 ```
 
 
+# Problem 3
 
+```
+This problem uses data collected in an observational study to understand the trajectory of Alzheimer’s disease (AD) biomarkers. Study participants were free of Mild Cognitive Impairment (MCI), a stage between the expected cognitive decline of normal aging and the more serious decline of dementia, at the study baseline.
+
+Basic demographic information were measured at the study baseline. The study monitored the development of MCI and recorded the age of MCI onset during the follow-up period, with the last visit marking the end of follow-up. APOE4 is a variant of the apolipoprotein E gene, significantly associated with a higher risk of developing Alzheimer’s disease. The amyloid β 42/40 ratio holds significant promise for diagnosing and predicting disease outcomes. This ratio undergoes changes over time and has been linked to the manifestation of clinical symptoms of Alzheimer’s disease.
+
+Import, clean, and tidy the dataset of baseline demographics. Ensure that sex and APOE4 carrier status are appropriate encoded (i.e. not numeric), and remove any participants who do not meet the stated inclusion criteria (i.e. no MCI at baseline). Discuss important steps in the import process and relevant features of the dataset. How many participants were recruited, and of these how many develop MCI? What is the average baseline age? What proportion of women in the study are APOE4 carriers?
+
+Similarly, import, clean, and tidy the dataset of longitudinally observed biomarker values; comment on the steps on the import process and the features of the dataset.
+
+Check whether some participants appear in only the baseline or amyloid datasets, and comment on your findings. Combine the demographic and biomarker datasets so that only participants who appear in both datasets are retained, and briefly describe the resulting dataset; export the result as a CSV to your data directory.
+```
+
+Baseline data:
+```{r, warning=FALSE}
+# Read baseline data
+mci_bl <- read_csv("./data/data_mci/mci_baseline.csv", 
+                   col_types = cols(
+                     `X1` = col_integer(),
+                     `Age at the study baseline` = col_double())) %>%
+  janitor::row_to_names(row_number = 1) %>%
+  rename(ID = 1, age_bl = 2, age_mci_onset = `Age at onset`) %>%
+  mutate(Sex = as.factor(Sex),
+         Education = as.numeric(Education),
+         apoe4 = as.factor(apoe4),
+         age_mci_onset = na_if(as.numeric(age_mci_onset), ".")) %>%
+  filter(is.na(age_mci_onset) | age_bl < age_mci_onset) # inclusion criteria (no MCI at baseline)
+```
+
+```{r, echo = F, warning=F}
+mci_bl %>% filter(!is.na(age_mci_onset))
+mci_bl %>% summarise(mean = mean(age_bl))
+mci_bl %>% filter(Sex == 0) # 210
+mci_bl %>% filter(Sex == 0, apoe4 == 1) # 63
+mci_bl %>% filter(Sex == 0, apoe4 == 0) # 147
+63/210
+```
+
+In order to clean the baseline data, I first read in the baseline dataset and specified some important column types as integers and doubles. I then made the first row into the column names. Next, I renamed some columns and specified column types for important variables (such as making APOE E4 and Sex into factor variables). After removing individuals that did not meet the inclusion critera, there were 479 participants in the study. Of these, 93 participants develop a MCI diagnosis. The average age at baseline is approximately 65 `r mean(mci_bl$age_bl)`. The proportion of women in the study who are APOE4 carriers is 0.3. 
+
+Amyloid data (longitudinal):
+```{r}
+mci_amy <- read_csv("./data/data_mci/mci_amyloid.csv", 
+                    col_types = cols(
+                      `Study ID` = col_integer(),
+                      `Time (in years) elapsed since the study baseline to the visit where biomarker Amyloid _ 42/40 ratio was measured` = col_double(),
+                      X3 = col_double(),
+                      X4 = col_double(),
+                      X5 = col_double(),
+                      X6 = col_double())) %>%
+  janitor::row_to_names(row_number = 1) %>%
+  rename(ID = 1, baseline = 2, time2 = 3, time4 = 4, time6 = 5, time8 = 6)
+```
+
+In order to clean the longitudinal amyloid β 42/40 data, I first read in the dataset and specified column types. I then renamed the variables in a tidy fashion. The dataset contains information on each individual's Amyloid values at different time points. The average amyloid value at baseline is `r mean(mci_amy$baseline, na.rm = T)`.
+
+```{r}
+# Check whether some participants appear in only the baseline or amyloid datasets
+amy_only <- anti_join(mci_amy, mci_bl, by = "ID") # appears only in amyloid longitudinal dataset
+bl_only <- anti_join(mci_bl, mci_amy, by = "ID") # appears only in baseline
+```
+
+There are some individuals who only appear in the baseline dataset and some individuals who only appear in the amyloid longitudinal dataset. There are `r nrow(amy_only)` participants who appear in the amyloid dataset and not the baseline dataset. There are `r nrow(bl_only)` participants who appear in the baseline dataset and not the amyloid dataset.
+
+```{r}
+# combine bl and amyloid data (inner join)
+mci_full <- inner_join(mci_amy, mci_bl, by = "ID")
+```
+
+I combined the baseline and amyloid datasets so that only participants who appear in both datasets are retained. The dataset contains `r nrow(mci_full)` observations. The average amyloid value at baseline is `r mean(mci_full$baseline, na.rm = T)`. Our sample has an average education level of `r mean(mci_full$Education, na.rm = T)` years and has 266 males and 205 females. 
+
+```{r}
+# export dataset
+write_csv(mci_full, "./data/data_mci/mci_cleaned.csv")
+```
 
